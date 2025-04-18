@@ -16,7 +16,10 @@ public class AnalyserVerticle extends AbstractVerticle {
         futureClass.onFailure(e -> System.out.println(e.getMessage()));
 
         Future<PackageDepsReport> futurePackage = analyser.getPackageDependencies(PACKAGE_PATH);
-        futurePackage.onSuccess(res -> System.out.println(res.getReport()));
+        futurePackage.onSuccess(res -> {
+            System.out.println(res.getAllReports());
+            System.out.println(res.getPackageReport());
+        });
         futurePackage.onFailure(e -> System.out.println(e.getMessage()));
     }
 
