@@ -7,6 +7,7 @@ public class AnalyserVerticle extends AbstractVerticle {
 
     private static final String CLASS_FILE_PATH = "src/main/java/pcd/ass02/async/DependencyAnalyserLib.java";
     private static final String PACKAGE_PATH = "src/main/java/pcd/ass02/async/";
+    private static final String PROJECT_PATH = "src/main/java/";
 
     @Override
     public void start() {
@@ -21,6 +22,13 @@ public class AnalyserVerticle extends AbstractVerticle {
             System.out.println(res.getPackageReport());
         });
         futurePackage.onFailure(e -> System.out.println(e.getMessage()));
+
+        Future<ProjectDepsReport> futureProject = analyser.getProjectDependencies(PROJECT_PATH);
+        futureProject.onSuccess(res -> {
+            System.out.println(res.getAllReports());
+            System.out.println(res.getProjectReport());
+        });
+        futureProject.onFailure(e -> System.out.println(e.getMessage()));
     }
 
 }

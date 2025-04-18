@@ -82,4 +82,50 @@ public class DependencyAnalyserLib {
         return promise.future();
     }
 
+    private Future<List<String>> getPackages(final String projectSrcFolder) {
+        final Promise<List<String>> promise = Promise.promise();
+        final FileSystem fileSystem = this.verticle.getVertx().fileSystem();
+        final Future<List<String>> futurePackages = fileSystem.readDir(projectSrcFolder);
+        futurePackages.onSuccess((final List<String> packagesPaths) -> {
+            if (packagesPaths.isEmpty()) {
+                promise.complete(new ArrayList<>());
+            } else {
+                packagesPaths.forEach(p -> {
+                    if (!p.contains(".")) {
+                        System.out.println(p);
+                        Future<List<String>> fut = getPackages(p);
+                        fut.onSuccess((final List<String> paths) -> {
+                            promise.complete(paths);
+                        });
+                    }
+                });
+            }
+        });
+        futurePackages.onFailure(promise::fail);
+        return promise.future();
+    }
+
+    public Future<ProjectDepsReport> getProjectDependencies(final String projectSrcFolder) {
+        final Promise<ProjectDepsReport> promise = Promise.promise();
+        final Future<List<String>> futurePackages = getPackages(projectSrcFolder);
+        futurePackages.onSuccess((final List<String> packagesPaths) -> {
+            System.out.println("RES: " + packagesPaths);
+            final List<Future<PackageDepsReport>> futures = new ArrayList<>();
+            final ProjectDepsReport projectDeps = new ProjectDepsReportImpl();
+            packagesPaths.forEach(p -> {
+                Future<PackageDepsReport> futurePackage = getPackageDependencies(p);
+                futurePackage.onSuccess(packageDeps -> {
+                    projectDeps.putPackageDeps(p, packageDeps); // TODO p -> last package
+                });
+                futures.add(futurePackage);
+            });
+            Future.all(futures).onSuccess((CompositeFuture cf) -> {
+                promise.complete(projectDeps);
+            });
+            Future.all(futures).onFailure(promise::fail);
+        });
+        futurePackages.onFailure(promise::fail);
+        return promise.future();
+    }
+
 }
