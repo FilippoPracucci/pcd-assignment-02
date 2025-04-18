@@ -16,4 +16,9 @@ public class ClassDepsReportImpl implements ClassDepsReport {
     public Set<String> getReport() {
         return Set.copyOf(this.types);
     }
+
+    @Override
+    public String toString() {
+        return this.types.toString();
+    }
 }
