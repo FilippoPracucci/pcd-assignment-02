@@ -12,19 +12,32 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class DependencyAnalyserLib {
 
-    final Verticle verticle;
-    final JavaParser parser;
+    private static final String EXCLUSIONS_PATH = "src/main/java/pcd/ass02/exclusions.txt";
+
+    private final Verticle verticle;
+    private final JavaParser parser;
+    private Set<String> exclusions = new HashSet<>();
 
     public DependencyAnalyserLib(final Verticle verticle) {
         this.verticle = verticle;
         this.parser = new JavaParser();
+    }
+
+    public Future<Void> addExclusions() {
+        final Promise<Void> promise = Promise.promise();
+        final FileSystem fileSystem = this.verticle.getVertx().fileSystem();
+        final Future<Buffer> futureBuffer = fileSystem.readFile(EXCLUSIONS_PATH);
+        futureBuffer.onSuccess(b -> {
+            this.exclusions = Set.copyOf(Arrays.asList(b.toString().split("\\n")));
+            promise.complete();
+        });
+        futureBuffer.onFailure(promise::fail);
+        return promise.future();
     }
 
     public Future<ClassDepsReport> getClassDependencies(final String classSrcFile) {
@@ -46,7 +59,11 @@ public class DependencyAnalyserLib {
                     Stream.concat(c.getFields().stream().map(f -> (Node) f), c.getMethods().stream().map(m -> (Node) m))
                             .flatMap(e -> e.findAll(ClassOrInterfaceType.class).stream())
                             .distinct()
-                            .forEach(t -> report.addType(t.toString()));
+                            .forEach(t -> {
+                                if (!this.exclusions.contains(t.toString())) {
+                                    report.addType(t.toString());
+                                }
+                            });
                 });
                 promise.complete(report);
             } else {
@@ -65,7 +82,7 @@ public class DependencyAnalyserLib {
             final PackageDepsReport packageDepsReport = new PackageDepsReportImpl();
             final List<Future<ClassDepsReport>> futures = new ArrayList<>();
             paths.forEach(p -> {
-                if (p.contains(".")) {
+                if (p.contains(".java")) {
                     final String fileName = Paths.get(p).getFileName().toString();
                     final String className = fileName.substring(0, fileName.lastIndexOf("."));
                     final Future<ClassDepsReport> futureClassDeps = getClassDependencies(p);

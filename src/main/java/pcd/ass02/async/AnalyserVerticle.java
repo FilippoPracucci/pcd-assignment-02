@@ -12,23 +12,34 @@ public class AnalyserVerticle extends AbstractVerticle {
     @Override
     public void start() {
         DependencyAnalyserLib analyser = new DependencyAnalyserLib(this);
-        Future<ClassDepsReport> futureClass = analyser.getClassDependencies(CLASS_FILE_PATH);
-        futureClass.onSuccess(res -> System.out.println(res.getReport() + "\n"));
-        futureClass.onFailure(e -> System.out.println(e.getMessage()));
 
-        Future<PackageDepsReport> futurePackage = analyser.getPackageDependencies(PACKAGE_PATH);
-        futurePackage.onSuccess(res -> {
-            System.out.println(res.getAllReports());
-            System.out.println(res.getPackageReport() + "\n");
-        });
-        futurePackage.onFailure(e -> System.out.println(e.getMessage()));
+        Future<Void> futureExclusions = analyser.addExclusions();
+        futureExclusions.onComplete(r -> {
+            if (r.failed()) {
+                System.err.println("Error in obtaining exclusions.");
+            }
 
-        Future<ProjectDepsReport> futureProject = analyser.getProjectDependencies(PROJECT_PATH);
-        futureProject.onSuccess(res -> {
-            System.out.println(res.getAllReports());
-            System.out.println(res.getProjectReport());
+            // getClassDependencies
+            Future<ClassDepsReport> futureClass = analyser.getClassDependencies(CLASS_FILE_PATH);
+            futureClass.onSuccess(res -> System.out.println(res.getReport() + "\n"));
+            futureClass.onFailure(e -> System.err.println(e.getMessage()));
+
+            // getPackageDependencies
+            Future<PackageDepsReport> futurePackage = analyser.getPackageDependencies(PACKAGE_PATH);
+            futurePackage.onSuccess(res -> {
+                System.out.println(res.getAllReports());
+                System.out.println(res.getPackageReport() + "\n");
+            });
+            futurePackage.onFailure(e -> System.err.println(e.getMessage()));
+
+            // getProjectDependencies
+            Future<ProjectDepsReport> futureProject = analyser.getProjectDependencies(PROJECT_PATH);
+            futureProject.onSuccess(res -> {
+                System.out.println(res.getAllReports());
+                System.out.println(res.getProjectReport());
+            });
+            futureProject.onFailure(e -> System.err.println(e.getMessage()));
         });
-        futureProject.onFailure(e -> System.out.println(e.getMessage()));
     }
 
 }
