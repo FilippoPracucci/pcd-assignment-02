@@ -25,4 +25,9 @@ public class PackageDepsReportImpl implements PackageDepsReport {
                 .flatMap(c -> c.getReport().stream())
                 .collect(Collectors.toSet());
     }
+
+    @Override
+    public String toString() {
+        return this.packageDeps.toString();
+    }
 }

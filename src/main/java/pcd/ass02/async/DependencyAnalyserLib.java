@@ -61,17 +61,19 @@ public class DependencyAnalyserLib {
         final Promise<PackageDepsReport> promise = Promise.promise();
         final FileSystem fileSystem = this.verticle.getVertx().fileSystem();
         final Future<List<String>> futureFiles = fileSystem.readDir(packageSrcFolder);
-        futureFiles.onSuccess((final List<String> files) -> {
+        futureFiles.onSuccess((final List<String> paths) -> {
             final PackageDepsReport packageDepsReport = new PackageDepsReportImpl();
             final List<Future<ClassDepsReport>> futures = new ArrayList<>();
-            files.forEach(f -> {
-                final String fileName = Paths.get(f).getFileName().toString();
-                final String className = fileName.substring(0, fileName.lastIndexOf("."));
-                final Future<ClassDepsReport> futureClassDeps = getClassDependencies(f);
-                futureClassDeps.onSuccess((ClassDepsReport c) -> {
-                    packageDepsReport.putClassDeps(className, c);
-                });
-                futures.add(futureClassDeps);
+            paths.forEach(p -> {
+                if (p.contains(".")) {
+                    final String fileName = Paths.get(p).getFileName().toString();
+                    final String className = fileName.substring(0, fileName.lastIndexOf("."));
+                    final Future<ClassDepsReport> futureClassDeps = getClassDependencies(p);
+                    futureClassDeps.onSuccess((ClassDepsReport c) -> {
+                        packageDepsReport.putClassDeps(className, c);
+                    });
+                    futures.add(futureClassDeps);
+                }
             });
             Future.all(futures).onSuccess((CompositeFuture cf) -> {
                 promise.complete(packageDepsReport);
@@ -82,40 +84,42 @@ public class DependencyAnalyserLib {
         return promise.future();
     }
 
-    private Future<List<String>> getPackages(final String projectSrcFolder) {
-        final Promise<List<String>> promise = Promise.promise();
-        final FileSystem fileSystem = this.verticle.getVertx().fileSystem();
-        final Future<List<String>> futurePackages = fileSystem.readDir(projectSrcFolder);
-        futurePackages.onSuccess((final List<String> packagesPaths) -> {
-            if (packagesPaths.isEmpty()) {
-                promise.complete(new ArrayList<>());
-            } else {
-                packagesPaths.forEach(p -> {
-                    if (!p.contains(".")) {
-                        System.out.println(p);
-                        Future<List<String>> fut = getPackages(p);
-                        fut.onSuccess((final List<String> paths) -> {
-                            promise.complete(paths);
-                        });
+    private Future<Void> findAllPackages(final FileSystem fileSystem, final String packagePath,
+                                         final List<String> packages) {
+        final Promise<Void> promise = Promise.promise();
+        final Future<CompositeFuture> cfFuture = fileSystem.readDir(packagePath).compose(paths -> {
+            List<Future<Void>> futures = new ArrayList<>();
+            paths.forEach(path -> {
+                Future<Void> future = fileSystem.props(path).compose(props -> {
+                    if (props.isDirectory()) {
+                        packages.add(path);
+                        return findAllPackages(fileSystem, path, packages);
+                    } else {
+                        return Future.succeededFuture();
                     }
                 });
-            }
+                futures.add(future);
+            });
+            return Future.all(futures);
         });
-        futurePackages.onFailure(promise::fail);
+        cfFuture.onSuccess(cf -> promise.complete());
+        cfFuture.onFailure(promise::fail);
         return promise.future();
     }
 
     public Future<ProjectDepsReport> getProjectDependencies(final String projectSrcFolder) {
         final Promise<ProjectDepsReport> promise = Promise.promise();
-        final Future<List<String>> futurePackages = getPackages(projectSrcFolder);
-        futurePackages.onSuccess((final List<String> packagesPaths) -> {
-            System.out.println("RES: " + packagesPaths);
+        final FileSystem fileSystem = this.verticle.getVertx().fileSystem();
+        final List<String> packages = new ArrayList<>();
+        final Future<Void> futurePackages = findAllPackages(fileSystem, projectSrcFolder, packages);
+        futurePackages.onSuccess(v -> {
             final List<Future<PackageDepsReport>> futures = new ArrayList<>();
             final ProjectDepsReport projectDeps = new ProjectDepsReportImpl();
-            packagesPaths.forEach(p -> {
+            packages.forEach(p -> {
                 Future<PackageDepsReport> futurePackage = getPackageDependencies(p);
                 futurePackage.onSuccess(packageDeps -> {
-                    projectDeps.putPackageDeps(p, packageDeps); // TODO p -> last package
+                    final String packageName = Paths.get(p).getFileName().toString();
+                    projectDeps.putPackageDeps(packageName, packageDeps);
                 });
                 futures.add(futurePackage);
             });

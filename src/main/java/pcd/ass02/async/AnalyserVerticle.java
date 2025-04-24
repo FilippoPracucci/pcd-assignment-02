@@ -13,13 +13,13 @@ public class AnalyserVerticle extends AbstractVerticle {
     public void start() {
         DependencyAnalyserLib analyser = new DependencyAnalyserLib(this);
         Future<ClassDepsReport> futureClass = analyser.getClassDependencies(CLASS_FILE_PATH);
-        futureClass.onSuccess(res -> System.out.println(res.getReport()));
+        futureClass.onSuccess(res -> System.out.println(res.getReport() + "\n"));
         futureClass.onFailure(e -> System.out.println(e.getMessage()));
 
         Future<PackageDepsReport> futurePackage = analyser.getPackageDependencies(PACKAGE_PATH);
         futurePackage.onSuccess(res -> {
             System.out.println(res.getAllReports());
-            System.out.println(res.getPackageReport());
+            System.out.println(res.getPackageReport() + "\n");
         });
         futurePackage.onFailure(e -> System.out.println(e.getMessage()));
 
