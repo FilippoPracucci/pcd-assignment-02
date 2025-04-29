@@ -22,6 +22,7 @@ public class DependencyAnalyser {
     private final Observable<String> source;
     private final JavaParser parser;
     private final Set<String> exclusions;
+    private String rootPath;
 
     public DependencyAnalyser() {
         this.parser = new JavaParser();
@@ -33,8 +34,12 @@ public class DependencyAnalyser {
         // Observable.create not accessible from parser
         this.source = Observable.create(emitter -> {
             new Thread(() -> {
-                try (final Stream<Path> paths = Files.walk(Paths.get( "src/main/java/pcd/ass02/reactive/"))) {
+                try (final Stream<Path> paths = Files.walk(Paths.get( this.rootPath))) {
                     paths.filter(Files::isRegularFile).forEach(f -> {
+                        if (!f.getFileName().toString().contains(".java")) {
+                            System.out.println(f.getFileName() + "is not a java file");
+                            return;
+                        }
                         ParseResult<CompilationUnit> parseResult = null;
                         try {
                             parseResult = this.parser.parse(String.join("\n", Files.readAllLines(f)));
@@ -71,6 +76,14 @@ public class DependencyAnalyser {
                 emitter.onComplete();
             }).start();
         });
+    }
+
+    public String getRootPath() {
+        return this.rootPath;
+    }
+
+    public void setRootPath(String rootPath) {
+        this.rootPath = rootPath;
     }
 
     public Observable<String> getSource() {

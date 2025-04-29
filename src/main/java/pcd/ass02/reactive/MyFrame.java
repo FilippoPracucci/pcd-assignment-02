@@ -8,17 +8,33 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.nio.file.Path;
 
 public class MyFrame extends JFrame {
 
+    private final Controller controller;
     private final JButton button;
 
-    public MyFrame(final Observable<String> source){
+    public MyFrame(final Controller controller) {
         super("GUI");
-        setSize(150,60);
-        setVisible(true);
+        this.controller = controller;
         this.button = new JButton("Press me");
+    }
+
+    public void startFileChooser() {
+        JFileChooser fc = new JFileChooser();
+        fc.setCurrentDirectory(new File(".")); // start at application current directory
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int returnVal = fc.showSaveDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File rootFolder = fc.getSelectedFile();
+            this.controller.setRootPath(rootFolder.getPath());
+        }
+    }
+
+    public void startGUI(final Observable<String> source) {
+        setSize(150,60);
         this.button.addActionListener((final ActionEvent ev) -> {
             //stream.onNext(1);
             source.subscribeOn(Schedulers.io())
@@ -33,6 +49,7 @@ public class MyFrame extends JFrame {
                 System.exit(-1);
             }
         });
+        setVisible(true);
     }
 
 }
