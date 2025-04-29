@@ -1,5 +1,7 @@
 package pcd.ass02.reactive;
 
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 public class Controller {
 
     private final MyFrame view;
@@ -13,6 +15,12 @@ public class Controller {
 
     public void setRootPath(final String rootPath) {
         this.analyser.setRootPath(rootPath);
-        this.view.startGUI(this.analyser.getSource());
+        this.analyser.getSource().subscribeOn(Schedulers.io())
+                .subscribe(classDepsReport -> {
+                    System.out.println(classDepsReport.getPath() + ": " + classDepsReport);
+                    this.view.updateTree(classDepsReport);
+                    Thread.sleep(500);
+                });
+        this.view.startGUI();
     }
 }

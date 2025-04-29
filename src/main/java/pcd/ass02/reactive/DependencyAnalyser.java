@@ -7,8 +7,6 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import io.reactivex.rxjava3.core.Observable;
-import pcd.ass02.async.ClassDepsReport;
-import pcd.ass02.async.ClassDepsReportImpl;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -19,7 +17,7 @@ public class DependencyAnalyser {
 
     private static final String EXCLUSIONS_PATH = "src/main/java/pcd/ass02/exclusions.txt";
 
-    private final Observable<String> source;
+    private final Observable<ClassDepsReport> source;
     private final JavaParser parser;
     private final Set<String> exclusions;
     private String rootPath;
@@ -51,7 +49,9 @@ public class DependencyAnalyser {
                             System.out.println("Result not successful");
                             return;
                         }
-                        final ClassDepsReport report = new ClassDepsReportImpl();
+                        final ClassDepsReport report = new ClassDepsReportImpl(
+                                f.toString().substring(this.rootPath.length())
+                        );
                         final Optional<CompilationUnit> compilationUnit = parseResult.getResult();
                         if (compilationUnit.isPresent()) {
                             final List<ClassOrInterfaceDeclaration> children = compilationUnit.get()
@@ -62,10 +62,12 @@ public class DependencyAnalyser {
                                         .distinct()
                                         .forEach(t -> {
                                             if (!this.exclusions.contains(t.toString())) {
-                                                emitter.onNext(t.toString());
+                                                //emitter.onNext(t.toString());
+                                                report.addType(t.toString());
                                             }
                                         });
                             });
+                            emitter.onNext(report);
                         } else {
                             System.out.println("ComputationalUnit not present");
                         }
@@ -86,7 +88,7 @@ public class DependencyAnalyser {
         this.rootPath = rootPath;
     }
 
-    public Observable<String> getSource() {
+    public Observable<ClassDepsReport> getSource() {
         return this.source;
     }
 }
