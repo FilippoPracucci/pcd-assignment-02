@@ -23,7 +23,7 @@ public class MyFrame extends JFrame {
     }
 
     public void startFileChooser() {
-        JFileChooser fc = new JFileChooser();
+        final JFileChooser fc = new JFileChooser();
         fc.setCurrentDirectory(new File(".")); // start at application current directory
         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int returnVal = fc.showSaveDialog(this);
@@ -47,10 +47,8 @@ public class MyFrame extends JFrame {
         final List<String> tempNodes = Arrays.asList(classDepsReport.getPath().split("\\\\"));
         final List<String> nodes = new ArrayList<>(tempNodes);
         nodes.remove(0);
-        final TreeNode packageNode = visitTree(nodes, this.rootNode);
-        System.out.println("PackageNode: " + packageNode);
+        final TreeNode packageNode = getPackageNode(nodes, this.rootNode);
         DefaultMutableTreeNode prevTreeNode = null;
-        DefaultTreeModel model = (DefaultTreeModel) this.tree.getModel();
         for (final String node: nodes) {
             if (prevTreeNode == null) {
                 prevTreeNode = new DefaultMutableTreeNode(node);
@@ -65,6 +63,11 @@ public class MyFrame extends JFrame {
             prevTreeNode.add(treeNode);
             prevTreeNode = treeNode;
         }
+        for (final String deps: classDepsReport.getReport()) {
+            DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(deps);
+            prevTreeNode.add(treeNode);
+        }
+        final DefaultTreeModel model = (DefaultTreeModel) this.tree.getModel();
         model.reload(this.rootNode);
         for (int i = 0; i < this.tree.getRowCount(); i++) {
             this.tree.expandRow(i);
@@ -76,16 +79,12 @@ public class MyFrame extends JFrame {
         this.repaint();
     }
 
-    private TreeNode visitTree(final List<String> nodes, final TreeNode currentNode) {
+    private TreeNode getPackageNode(final List<String> nodes, final TreeNode currentNode) {
         for (int i = 0; i < currentNode.getChildCount(); i++) {
-            System.out.println("CURRENT_NODE: " + currentNode);
             final TreeNode child = currentNode.getChildAt(i);
-            System.out.println("NODES: " + nodes);
-            System.out.println("Nodes[0]: " + nodes.get(0) + " --- Child: " + child);
             if (nodes.get(0).equals(child.toString())) {
-                System.out.println("[MATCH] Nodes[0]: " + nodes.get(0) + " --- Child: " + child);
                 nodes.remove(0);
-                TreeNode visited = visitTree(nodes, child);
+                TreeNode visited = getPackageNode(nodes, child);
                 return visited == null ? child : visited;
             }
         }
