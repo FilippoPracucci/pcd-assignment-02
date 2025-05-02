@@ -21,6 +21,6 @@ public class Controller {
                     this.view.updateTree(classDepsReport);
                     Thread.sleep(500);
                 });
-        this.view.startGUI();
+        this.view.startGUI(rootPath);
     }
 }
