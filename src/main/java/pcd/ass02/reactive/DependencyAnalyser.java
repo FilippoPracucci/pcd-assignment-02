@@ -18,7 +18,7 @@ public class DependencyAnalyser {
 
     private static final String EXCLUSIONS_PATH = "src/main/java/pcd/ass02/exclusions.txt";
 
-    private final Observable<ClassDepsReport> source;
+    private final Observable<RxClassDepsReport> source;
     private final JavaParser parser;
     private final Set<String> exclusions;
     private String rootPath;
@@ -33,7 +33,7 @@ public class DependencyAnalyser {
         this.source = this.analyse();
     }
 
-    private Observable<ClassDepsReport> analyse() {
+    private Observable<RxClassDepsReport> analyse() {
         // Observable.create not accessible from parser
         return Observable.create(emitter -> {
             new Thread(() -> {
@@ -47,11 +47,11 @@ public class DependencyAnalyser {
         });
     }
 
-    private void getClassDependencies(final ObservableEmitter<ClassDepsReport> emitter, final Path filePath) {
+    private void getClassDependencies(final ObservableEmitter<RxClassDepsReport> emitter, final Path filePath) {
         if (!filePath.getFileName().toString().contains(".java")) {
             return;
         }
-        final ClassDepsReport report = new ClassDepsReportImpl(
+        final RxClassDepsReport report = new RxClassDepsReportImpl(
                 filePath.toString().substring(this.rootPath.length())
         );
         tryParse(filePath).ifPresentOrElse(children -> children.forEach(c -> {
@@ -86,7 +86,7 @@ public class DependencyAnalyser {
         this.rootPath = rootPath;
     }
 
-    public Observable<ClassDepsReport> getSource() {
+    public Observable<RxClassDepsReport> getSource() {
         return this.source;
     }
 }

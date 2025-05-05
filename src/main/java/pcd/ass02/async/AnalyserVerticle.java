@@ -2,6 +2,7 @@ package pcd.ass02.async;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import pcd.ass02.util.ClassDepsReport;
 
 public class AnalyserVerticle extends AbstractVerticle {
 

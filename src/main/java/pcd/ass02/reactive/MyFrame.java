@@ -67,7 +67,7 @@ public class MyFrame extends JFrame {
         this.setVisible(true);
     }
 
-    public void update(final ClassDepsReport classDepsReport) {
+    public void update(final RxClassDepsReport classDepsReport) {
         final List<String> tempNodes = Arrays.asList(classDepsReport.getPath().split("\\\\"));
         final List<String> nodes = new ArrayList<>(tempNodes);
         nodes.remove(0);
@@ -80,7 +80,7 @@ public class MyFrame extends JFrame {
         this.repaint();
     }
 
-    private void updateTree(final ClassDepsReport classDepsReport, final List<String> nodes) {
+    private void updateTree(final RxClassDepsReport classDepsReport, final List<String> nodes) {
         final TreeNode packageNode = getPackageNode(nodes, this.rootNode);
         DefaultMutableTreeNode prevTreeNode = null;
         for (final String node: nodes) {

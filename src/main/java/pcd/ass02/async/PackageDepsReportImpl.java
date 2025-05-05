@@ -1,5 +1,7 @@
 package pcd.ass02.async;
 
+import pcd.ass02.util.ClassDepsReport;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;

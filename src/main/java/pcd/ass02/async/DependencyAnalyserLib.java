@@ -10,6 +10,8 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
+import pcd.ass02.util.ClassDepsReport;
+import pcd.ass02.util.ClassDepsReportImpl;
 
 import java.nio.file.Paths;
 import java.util.*;

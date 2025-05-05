@@ -1,30 +1,24 @@
-package pcd.ass02.reactive;
+package pcd.ass02.util;
 
 import java.util.HashSet;
 import java.util.Set;
 
 public class ClassDepsReportImpl implements ClassDepsReport {
 
-    private final String path;
-    private final Set<String> types = new HashSet<>();
+    private final Set<String> types;
 
-    public ClassDepsReportImpl(String path) {
-        this.path = path;
+    public ClassDepsReportImpl() {
+        this.types = new HashSet<>();
     }
 
     @Override
-    public void addType(String type) {
+    public void addType(final String type) {
         this.types.add(type);
     }
 
     @Override
     public Set<String> getReport() {
         return Set.copyOf(this.types);
-    }
-
-    @Override
-    public String getPath() {
-        return this.path;
     }
 
     @Override
