@@ -19,7 +19,7 @@ public class Controller {
                 .subscribe(classDepsReport -> {
                     System.out.println(classDepsReport.getPath() + ": " + classDepsReport);
                     this.view.updateTree(classDepsReport);
-                    Thread.sleep(500);
+                    Thread.sleep(1000);
                 });
         this.view.startGUI(rootPath);
     }
