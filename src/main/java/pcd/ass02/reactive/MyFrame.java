@@ -62,12 +62,12 @@ public class MyFrame extends JFrame {
         this.tree = new JTree(this.rootNode);
         this.scrollPane = new JScrollPane(tree, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         this.getContentPane().add(this.scrollPane, BorderLayout.CENTER);
-        this.pack();
+        this.setSize(Toolkit.getDefaultToolkit().getScreenSize());
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setVisible(true);
     }
 
-    public void updateTree(final ClassDepsReport classDepsReport) {
+    public void update(final ClassDepsReport classDepsReport) {
         final List<String> tempNodes = Arrays.asList(classDepsReport.getPath().split("\\\\"));
         final List<String> nodes = new ArrayList<>(tempNodes);
         nodes.remove(0);
@@ -100,7 +100,6 @@ public class MyFrame extends JFrame {
         this.getContentPane().removeAll();
         this.getContentPane().add(this.northPanel, BorderLayout.NORTH);
         this.getContentPane().add(this.scrollPane, BorderLayout.CENTER);
-        this.pack();
         this.revalidate();
         this.repaint();
     }

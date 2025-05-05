@@ -15,12 +15,9 @@ public class Controller {
 
     public void setRootPath(final String rootPath) {
         this.analyser.setRootPath(rootPath);
-        this.analyser.getSource().subscribeOn(Schedulers.io())
-                .subscribe(classDepsReport -> {
-                    System.out.println(classDepsReport.getPath() + ": " + classDepsReport);
-                    this.view.updateTree(classDepsReport);
-                    Thread.sleep(1000);
-                });
+        this.analyser.getSource()
+                .subscribeOn(Schedulers.io())
+                .subscribe(this.view::update);
         this.view.startGUI(rootPath);
     }
 }

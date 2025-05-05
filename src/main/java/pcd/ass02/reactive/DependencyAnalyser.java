@@ -26,28 +26,29 @@ public class DependencyAnalyser {
         this.parser = new JavaParser();
         try {
             this.exclusions = Set.copyOf(Files.readAllLines(Paths.get(EXCLUSIONS_PATH)));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
+        this.source = this.analyse();
+    }
+
+    private Observable<ClassDepsReport> analyse() {
         // Observable.create not accessible from parser
-        this.source = Observable.create(emitter -> {
+        return Observable.create(emitter -> {
             new Thread(() -> {
-                try (final Stream<Path> paths = Files.walk(Paths.get( this.rootPath))) {
+                try (final Stream<Path> paths = Files.walk(Paths.get("asdas"))) {
                     paths.filter(Files::isRegularFile).forEach(f -> {
                         if (!f.getFileName().toString().contains(".java")) {
-                            System.out.println(f.getFileName() + "is not a java file");
                             return;
                         }
                         ParseResult<CompilationUnit> parseResult = null;
                         try {
                             parseResult = this.parser.parse(String.join("\n", Files.readAllLines(f)));
-                        } catch (IOException e) {
-                            System.out.println(e.getMessage());
+                        } catch (final IOException e) {
                             throw new RuntimeException(e);
                         }
                         if (!parseResult.isSuccessful()) {
-                            System.out.println("Result not successful");
-                            return;
+                            throw new RuntimeException("Result not successful");
                         }
                         final ClassDepsReport report = new ClassDepsReportImpl(
                                 f.toString().substring(this.rootPath.length())
@@ -57,31 +58,28 @@ public class DependencyAnalyser {
                             final List<ClassOrInterfaceDeclaration> children = compilationUnit.get()
                                     .findAll(ClassOrInterfaceDeclaration.class);
                             children.forEach(c -> {
-                                Stream.concat(c.getFields().stream().map(field -> (Node) field), c.getMethods().stream().map(m -> (Node) m))
-                                        .flatMap(e -> e.findAll(ClassOrInterfaceType.class).stream())
+                                Stream.concat(
+                                            c.getFields().stream().map(field -> (Node) field),
+                                            c.getMethods().stream().map(m -> (Node) m)
+                                        ).flatMap(e -> e.findAll(ClassOrInterfaceType.class).stream())
                                         .distinct()
                                         .forEach(t -> {
                                             if (!this.exclusions.contains(t.toString())) {
-                                                //emitter.onNext(t.toString());
                                                 report.addType(t.toString());
                                             }
                                         });
                             });
                             emitter.onNext(report);
                         } else {
-                            System.out.println("ComputationalUnit not present");
+                            throw new RuntimeException("ComputationalUnit not present");
                         }
                     });
                 } catch (final IOException e) {
-                    e.getMessage();
+                    throw new RuntimeException(e);
                 }
                 emitter.onComplete();
             }).start();
         });
-    }
-
-    public String getRootPath() {
-        return this.rootPath;
     }
 
     public void setRootPath(String rootPath) {
