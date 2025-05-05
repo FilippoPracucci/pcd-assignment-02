@@ -7,6 +7,7 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.ObservableEmitter;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -36,50 +37,49 @@ public class DependencyAnalyser {
         // Observable.create not accessible from parser
         return Observable.create(emitter -> {
             new Thread(() -> {
-                try (final Stream<Path> paths = Files.walk(Paths.get("asdas"))) {
-                    paths.filter(Files::isRegularFile).forEach(f -> {
-                        if (!f.getFileName().toString().contains(".java")) {
-                            return;
-                        }
-                        ParseResult<CompilationUnit> parseResult = null;
-                        try {
-                            parseResult = this.parser.parse(String.join("\n", Files.readAllLines(f)));
-                        } catch (final IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                        if (!parseResult.isSuccessful()) {
-                            throw new RuntimeException("Result not successful");
-                        }
-                        final ClassDepsReport report = new ClassDepsReportImpl(
-                                f.toString().substring(this.rootPath.length())
-                        );
-                        final Optional<CompilationUnit> compilationUnit = parseResult.getResult();
-                        if (compilationUnit.isPresent()) {
-                            final List<ClassOrInterfaceDeclaration> children = compilationUnit.get()
-                                    .findAll(ClassOrInterfaceDeclaration.class);
-                            children.forEach(c -> {
-                                Stream.concat(
-                                            c.getFields().stream().map(field -> (Node) field),
-                                            c.getMethods().stream().map(m -> (Node) m)
-                                        ).flatMap(e -> e.findAll(ClassOrInterfaceType.class).stream())
-                                        .distinct()
-                                        .forEach(t -> {
-                                            if (!this.exclusions.contains(t.toString())) {
-                                                report.addType(t.toString());
-                                            }
-                                        });
-                            });
-                            emitter.onNext(report);
-                        } else {
-                            throw new RuntimeException("ComputationalUnit not present");
-                        }
-                    });
+                try (final Stream<Path> paths = Files.walk(Paths.get(this.rootPath))) {
+                    paths.filter(Files::isRegularFile).forEach(f -> getClassDependencies(emitter, f));
                 } catch (final IOException e) {
                     throw new RuntimeException(e);
                 }
                 emitter.onComplete();
             }).start();
         });
+    }
+
+    private void getClassDependencies(final ObservableEmitter<ClassDepsReport> emitter, final Path filePath) {
+        if (!filePath.getFileName().toString().contains(".java")) {
+            return;
+        }
+        final ClassDepsReport report = new ClassDepsReportImpl(
+                filePath.toString().substring(this.rootPath.length())
+        );
+        tryParse(filePath).ifPresentOrElse(children -> children.forEach(c -> {
+            Stream.concat(c.getFields().stream().map(field -> (Node) field), c.getMethods().stream().map(m -> (Node) m))
+                    .flatMap(e -> e.findAll(ClassOrInterfaceType.class).stream())
+                    .distinct()
+                    .forEach(t -> {
+                        if (!this.exclusions.contains(t.toString())) {
+                            report.addType(t.toString());
+                        }
+                    });
+        }), () -> {
+            throw new RuntimeException();
+        });
+        emitter.onNext(report);
+    }
+
+    private Optional<List<ClassOrInterfaceDeclaration>> tryParse(final Path filePath) {
+        ParseResult<CompilationUnit> parseResult;
+        try {
+            parseResult = this.parser.parse(String.join("\n", Files.readAllLines(filePath)));
+        } catch (final IOException e) {
+            return Optional.empty();
+        }
+        if (!parseResult.isSuccessful()) {
+            return Optional.empty();
+        }
+        return parseResult.getResult().map(unit -> unit.findAll(ClassOrInterfaceDeclaration.class));
     }
 
     public void setRootPath(String rootPath) {

@@ -72,6 +72,15 @@ public class MyFrame extends JFrame {
         final List<String> nodes = new ArrayList<>(tempNodes);
         nodes.remove(0);
         this.updateFields(nodes.size());
+        this.updateTree(classDepsReport, nodes);
+        this.getContentPane().removeAll();
+        this.getContentPane().add(this.northPanel, BorderLayout.NORTH);
+        this.getContentPane().add(this.scrollPane, BorderLayout.CENTER);
+        this.revalidate();
+        this.repaint();
+    }
+
+    private void updateTree(final ClassDepsReport classDepsReport, final List<String> nodes) {
         final TreeNode packageNode = getPackageNode(nodes, this.rootNode);
         DefaultMutableTreeNode prevTreeNode = null;
         for (final String node: nodes) {
@@ -97,11 +106,6 @@ public class MyFrame extends JFrame {
         for (int i = 0; i < this.tree.getRowCount(); i++) {
             this.tree.expandRow(i);
         }
-        this.getContentPane().removeAll();
-        this.getContentPane().add(this.northPanel, BorderLayout.NORTH);
-        this.getContentPane().add(this.scrollPane, BorderLayout.CENTER);
-        this.revalidate();
-        this.repaint();
     }
 
     private void updateFields(final int depsFound) {
