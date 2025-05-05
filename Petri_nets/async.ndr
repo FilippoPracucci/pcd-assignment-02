@@ -1,0 +1,19 @@
+t 545.0 50.0 t0 c 0 w n getPackageDependencies n
+p 755.0 50.0 p2 0 n
+t 955.0 50.0 t1 c 0 w n getClassDependencies n
+p 1155.0 50.0 p3 0 ne
+p 345.0 50.0 p1 0 n
+t 190.0 50.0 t3 c 0 w n getProjectDependencies n
+p 30.0 50.0 p0 1 n
+t 645.0 180.0 t2 0 w n
+e t2 0.5064736635 172.1423829 p0 0.9166803344 142.0211252 1 n
+e t3 p1 5 n
+e p0 t3 1 n
+e p1 t0 1 n
+e t0 p2 10 sw
+e p2 t1 1 n
+e t1 p3 1 n
+e p3 0.5838435574 113.3710721 t2 0.001105224894 144.0034722 50 n
+h async
+
+

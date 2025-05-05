@@ -1,0 +1,17 @@
+p 480.0 90.0 p1 0 n
+p 110.0 90.0 p0 1 n
+p 360.0 225.0 p4 0 n
+t 200.0 225.0 t2 c 0 w n {when files are terminated} w
+t 605.0 90.0 t1 c 0 w n updateGUI s
+p 745.0 90.0 p3 0 n
+t 300.0 90.0 t0 c 0 w n {getClassDependencies (while file present)} s
+e t2 p4 1 n
+e p0 t2 1 n
+e t0 0.3087217356 80.41144197 p0 0.1821001256 84.58132182 1 n
+e t1 p3 1 n
+e p1 t1 1 n
+e t0 p1 1 n
+e p0 0.003002567185 53.00943312 t0 0.4889141303 43.10452412 1 n
+h reactive
+
+
