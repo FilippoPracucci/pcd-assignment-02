@@ -7,11 +7,11 @@ import javax.swing.tree.TreeNode;
 import java.awt.*;
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
+import pcd.ass02.util.Pair;
 
-public class MyFrame extends JFrame {
+public class View extends JFrame {
 
     private static final String DEPS_FOUND_LABEL = "Dependencies found: ";
     private static final String FILES_ANALYSED_LABEL = "Class/interfaces analysed: ";
@@ -28,7 +28,7 @@ public class MyFrame extends JFrame {
     private final JTextField depsFoundField;
     private final JTextField filesAnalysedField;
 
-    public MyFrame(final Controller controller) {
+    public View(final Controller controller) {
         super("GUI");
         this.controller = controller;
         this.northPanel = new JPanel(new FlowLayout());
@@ -49,7 +49,7 @@ public class MyFrame extends JFrame {
         }
     }
 
-    public void startGUI(final String rootPath) {
+    public void startView(final String rootPath) {
         this.getContentPane().setLayout(new BorderLayout());
         this.northPanel.add(this.filesAnalysedLabel);
         this.northPanel.add(this.filesAnalysedField);
@@ -67,12 +67,13 @@ public class MyFrame extends JFrame {
         this.setVisible(true);
     }
 
-    public void update(final RxClassDepsReport classDepsReport) {
-        final List<String> tempNodes = Arrays.asList(classDepsReport.getPath().split("\\\\"));
-        final List<String> nodes = new ArrayList<>(tempNodes);
-        nodes.remove(0);
-        this.updateFields(nodes.size());
-        this.updateTree(classDepsReport, nodes);
+    /**
+     * Updates the view.
+     * @param pair the pair of the class path elements and the class dependencies
+     */
+    public void update(final Pair<List<String>, Set<String>> pair) {
+        this.updateFields(pair.getY().size());
+        this.updateTree(pair.getX(), pair.getY());
         this.getContentPane().removeAll();
         this.getContentPane().add(this.northPanel, BorderLayout.NORTH);
         this.getContentPane().add(this.scrollPane, BorderLayout.CENTER);
@@ -80,7 +81,7 @@ public class MyFrame extends JFrame {
         this.repaint();
     }
 
-    private void updateTree(final RxClassDepsReport classDepsReport, final List<String> nodes) {
+    private void updateTree(final List<String> nodes, final Set<String> classDeps) {
         final TreeNode packageNode = getPackageNode(nodes, this.rootNode);
         DefaultMutableTreeNode prevTreeNode = null;
         for (final String node: nodes) {
@@ -97,8 +98,8 @@ public class MyFrame extends JFrame {
             prevTreeNode.add(treeNode);
             prevTreeNode = treeNode;
         }
-        for (final String deps: classDepsReport.getReport()) {
-            DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(deps);
+        for (final String dep: classDeps) {
+            DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(dep);
             prevTreeNode.add(treeNode);
         }
         final DefaultTreeModel model = (DefaultTreeModel) this.tree.getModel();

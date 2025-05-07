@@ -82,7 +82,7 @@ public class DependencyAnalyser {
         return parseResult.getResult().map(unit -> unit.findAll(ClassOrInterfaceDeclaration.class));
     }
 
-    public void setRootPath(String rootPath) {
+    public void setRootPath(final String rootPath) {
         this.rootPath = rootPath;
     }
 
