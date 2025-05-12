@@ -2,17 +2,16 @@ package pcd.ass02.reactive;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
-import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.ObservableEmitter;
+import io.reactivex.rxjava3.core.ObservableSource;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class DependencyAnalyser {
 
@@ -30,56 +29,43 @@ public class DependencyAnalyser {
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
-        this.source = this.analyse();
+        this.source = this.createSource();
     }
 
-    private Observable<RxClassDepsReport> analyse() {
-        // Observable.create not accessible from parser
-        return Observable.create(emitter -> {
-            new Thread(() -> {
-                try (final Stream<Path> paths = Files.walk(Paths.get(this.rootPath))) {
-                    paths.filter(Files::isRegularFile).forEach(f -> getClassDependencies(emitter, f));
-                } catch (final IOException e) {
-                    throw new RuntimeException(e);
-                }
-                emitter.onComplete();
-            }).start();
-        });
+    private Observable<RxClassDepsReport> createSource() {
+        return Observable.defer(() ->
+            Observable
+                    .fromStream(Files.walk(Paths.get(this.rootPath)))
+                    .subscribeOn(Schedulers.io())
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().contains(".java"))
+                    .flatMap(this::getClassDependencies)
+        );
     }
 
-    private void getClassDependencies(final ObservableEmitter<RxClassDepsReport> emitter, final Path filePath) {
-        if (!filePath.getFileName().toString().contains(".java")) {
-            return;
-        }
+    private ObservableSource<RxClassDepsReport> getClassDependencies(final Path filePath) {
         final RxClassDepsReport report = new RxClassDepsReportImpl(
                 filePath.toString().substring(this.rootPath.length())
         );
-        tryParse(filePath).ifPresentOrElse(children -> children.forEach(c -> {
-            Stream.concat(c.getFields().stream().map(field -> (Node) field), c.getMethods().stream().map(m -> (Node) m))
-                    .flatMap(e -> e.findAll(ClassOrInterfaceType.class).stream())
-                    .distinct()
-                    .forEach(t -> {
-                        if (!this.exclusions.contains(t.toString())) {
-                            report.addType(t.toString());
-                        }
-                    });
-        }), () -> {
-            throw new RuntimeException();
-        });
-        emitter.onNext(report);
-    }
-
-    private Optional<List<ClassOrInterfaceDeclaration>> tryParse(final Path filePath) {
-        ParseResult<CompilationUnit> parseResult;
-        try {
-            parseResult = this.parser.parse(String.join("\n", Files.readAllLines(filePath)));
-        } catch (final IOException e) {
-            return Optional.empty();
-        }
-        if (!parseResult.isSuccessful()) {
-            return Optional.empty();
-        }
-        return parseResult.getResult().map(unit -> unit.findAll(ClassOrInterfaceDeclaration.class));
+        return Observable
+                .just(filePath)
+                .map(path -> this.parser.parse(String.join("\n", Files.readAllLines(path))))
+                .filter(ParseResult::isSuccessful)
+                .map(ParseResult::getResult)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .flatMapIterable(unit -> unit.findAll(ClassOrInterfaceDeclaration.class))
+                .flatMap(declaration -> Observable.merge(
+                        Observable.fromIterable(declaration.getFields()).map(field -> (Node) field),
+                        Observable.fromIterable(declaration.getMethods()).map(method -> (Node) method)
+                ))
+                .flatMapIterable(node -> node.findAll(ClassOrInterfaceType.class))
+                .distinct()
+                .map(ClassOrInterfaceType::toString)
+                .filter(type -> !this.exclusions.contains(type))
+                .doOnNext(report::addType)
+                .ignoreElements()
+                .andThen(Observable.just(report));
     }
 
     public void setRootPath(final String rootPath) {
